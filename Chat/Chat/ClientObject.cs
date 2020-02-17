@@ -11,7 +11,7 @@ namespace Chat
         //Хранит поток для взаимодействия с клиентом
         protected internal NetworkStream Stream { get; private set; }
 
-        string userName;
+        private string _userName;
 
         TcpClient client;
         ServerObject server;
@@ -32,8 +32,8 @@ namespace Chat
                 Stream = client.GetStream();
                 // получаем имя пользователя
                 string message = GetMessage();
-                userName = message;
-                message = userName + " вошел в чат";
+                _userName = message;
+                message = _userName + " вошел в чат";
                 // посылаем сообщение о входе в чат всем подключенным пользователям
                 server.BroadcastMessage(message, this.Id);
                 Console.WriteLine(message);
@@ -43,13 +43,13 @@ namespace Chat
                     try
                     {
                         message = GetMessage();
-                        message = String.Format("{0}: {1}", userName, message);
+                        message = String.Format("{0}: {1}", _userName, message);
                         Console.WriteLine(message);
                         server.BroadcastMessage(message, this.Id);
                     }
                     catch
                     {
-                        message = String.Format("{0}: покинул чат", userName);
+                        message = String.Format("{0}: покинул чат", _userName);
                         Console.WriteLine(message);
                         server.BroadcastMessage(message, this.Id);
                         break;
@@ -73,7 +73,7 @@ namespace Chat
         {
             byte[] data = new byte[64];
             StringBuilder builder = new StringBuilder();
-            int bytes = 0;
+            int bytes;
             do
             {
                 bytes = Stream.Read(data, 0, data.Length);

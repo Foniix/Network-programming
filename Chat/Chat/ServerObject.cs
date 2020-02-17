@@ -5,14 +5,14 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Chat
 {
     public class ServerObject
     {
-        static TcpListener tcpListener; // сервер для прослушивания
-        List<ClientObject> clients = new List<ClientObject>(); // все подключения
+        private static TcpListener _tcpListener;
+        //Лист всех подключений
+        List<ClientObject> clients = new List<ClientObject>();
 
         protected internal void AddConnection(ClientObject clientObject)
         {
@@ -31,16 +31,16 @@ namespace Chat
         {
             try
             {
-                tcpListener = new TcpListener(IPAddress.Any, 8888);
-                tcpListener.Start();
+                _tcpListener = new TcpListener(IPAddress.Any, 8888);
+                _tcpListener.Start();
                 Console.WriteLine("Сервер запущен. Ожидание подключений...");
 
                 while (true)
                 {
-                    TcpClient tcpClient = tcpListener.AcceptTcpClient();
+                    TcpClient tcpClient = _tcpListener.AcceptTcpClient();
 
                     ClientObject clientObject = new ClientObject(tcpClient, this);
-                    Thread clientThread = new Thread(new ThreadStart(clientObject.Process));
+                    Thread clientThread = new Thread(clientObject.Process);
                     clientThread.Start();
                 }
             }
@@ -57,16 +57,18 @@ namespace Chat
             byte[] data = Encoding.Unicode.GetBytes(message);
             for (int i = 0; i < clients.Count; i++)
             {
-                if (clients[i].Id != id) // если id клиента не равно id отправляющего
+                // если id клиента не равно id отправляющего
+                if (clients[i].Id != id)
                 {
-                    clients[i].Stream.Write(data, 0, data.Length); //передача данных
+                    clients[i].Stream.Write(data, 0, data.Length);
                 }
             }
         }
+
         // отключение всех клиентов
         protected internal void Disconnect()
         {
-            tcpListener.Stop(); //остановка сервера
+            _tcpListener.Stop(); //остановка сервера
 
             for (int i = 0; i < clients.Count; i++)
             {
