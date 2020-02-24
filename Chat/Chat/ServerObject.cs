@@ -10,37 +10,32 @@ namespace Chat
 {
     public class ServerObject
     {
-        private static TcpListener _tcpListener;
-        //Лист всех подключений
-        List<ClientObject> clients = new List<ClientObject>();
+        static TcpListener _tcpListener;
+        private readonly List<ClientObject> _clients = new List<ClientObject>();
 
-        protected internal void AddConnection(ClientObject clientObject)
+        public void AddConnection(ClientObject clientObject)
         {
-            clients.Add(clientObject);
+            _clients.Add(clientObject);
         }
-        protected internal void RemoveConnection(string id)
+        public void RemoveConnection(string id)
         {
-            // получаем по id закрытое подключение
-            ClientObject client = clients.FirstOrDefault(c => c.Id == id);
-            // и удаляем его из списка подключений
+            var client = _clients.FirstOrDefault(c => c.Id == id);
             if (client != null)
-                clients.Remove(client);
+                _clients.Remove(client);
         }
         // прослушивание входящих подключений
-        protected internal void Listen()
+        public void Listen()
         {
             try
             {
-                _tcpListener = new TcpListener(IPAddress.Any, 8888);
+                _tcpListener = new TcpListener(IPAddress.Any, 50000);
                 _tcpListener.Start();
                 Console.WriteLine("Сервер запущен. Ожидание подключений...");
-
                 while (true)
                 {
-                    TcpClient tcpClient = _tcpListener.AcceptTcpClient();
-
-                    ClientObject clientObject = new ClientObject(tcpClient, this);
-                    Thread clientThread = new Thread(clientObject.Process);
+                    var tcpClient = _tcpListener.AcceptTcpClient();
+                    var clientObject = new ClientObject(tcpClient, this);
+                    var clientThread = new Thread(clientObject.Process);
                     clientThread.Start();
                 }
             }
@@ -51,30 +46,24 @@ namespace Chat
             }
         }
 
-        // трансляция сообщения подключенным клиентам
-        protected internal void BroadcastMessage(string message, string id)
+        public void BroadcastMessage(string message, string id)
         {
-            byte[] data = Encoding.Unicode.GetBytes(message);
-            for (int i = 0; i < clients.Count; i++)
+            var data = Encoding.Unicode.GetBytes(message);
+            foreach (var t in _clients)
             {
-                // если id клиента не равно id отправляющего
-                if (clients[i].Id != id)
-                {
-                    clients[i].Stream.Write(data, 0, data.Length);
-                }
+                t.Stream.Write(data, 0, data.Length);
             }
         }
 
-        // отключение всех клиентов
-        protected internal void Disconnect()
+        public void Disconnect()
         {
-            _tcpListener.Stop(); //остановка сервера
+            _tcpListener.Stop();
 
-            for (int i = 0; i < clients.Count; i++)
+            foreach (var t in _clients)
             {
-                clients[i].Close(); //отключение клиента
+                t.Close();
             }
-            Environment.Exit(0); //завершение процесса
+            Environment.Exit(0);
         }
     }
 }

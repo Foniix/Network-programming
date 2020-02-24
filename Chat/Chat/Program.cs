@@ -3,12 +3,12 @@ using System.Threading;
 
 namespace Chat
 {
-    class Program
+    internal class Program
     {
-        static ServerObject _server;
-        // потока для прослушивания
-        static Thread _listenThread;
-        static void Main()
+        private static ServerObject _server;
+        private static Thread _listenThread;
+
+        private static void Main()
         {
             try
             {

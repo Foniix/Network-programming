@@ -6,52 +6,49 @@ namespace Chat
 {
     public class ClientObject
     {
-        //Уникальный индентификатор
-        protected internal string Id { get; private set; }
-        //Хранит поток для взаимодействия с клиентом
-        protected internal NetworkStream Stream { get; private set; }
-
+        public string Id { get; private set; }
+        public NetworkStream Stream { get; private set; }
         private string _userName;
-
-        TcpClient client;
-        ServerObject server;
+        private readonly TcpClient _client;
+        private readonly ServerObject _server;
 
         public ClientObject(TcpClient tcpClient, ServerObject serverObject)
         {
             Id = Guid.NewGuid().ToString();
-            client = tcpClient;
-            server = serverObject;
+            _client = tcpClient;
+            _server = serverObject;
             serverObject.AddConnection(this);
         }
 
-        //протокол обмен сообещниями
         public void Process()
         {
             try
             {
-                Stream = client.GetStream();
+                Stream = _client.GetStream();
                 // получаем имя пользователя
-                string message = GetMessage();
+                var message = GetMessage();
                 _userName = message;
+
                 message = _userName + " вошел в чат";
                 // посылаем сообщение о входе в чат всем подключенным пользователям
-                server.BroadcastMessage(message, this.Id);
+                _server.BroadcastMessage(message, this.Id);
                 Console.WriteLine(message);
+
                 // в бесконечном цикле получаем сообщения от клиента
                 while (true)
                 {
                     try
                     {
                         message = GetMessage();
-                        message = String.Format("{0}: {1}", _userName, message);
+                        message = $"{_userName}: {message}";
                         Console.WriteLine(message);
-                        server.BroadcastMessage(message, this.Id);
+                        _server.BroadcastMessage(message, this.Id);
                     }
                     catch
                     {
-                        message = String.Format("{0}: покинул чат", _userName);
+                        message = $"{_userName}: покинул чат";
                         Console.WriteLine(message);
-                        server.BroadcastMessage(message, this.Id);
+                        _server.BroadcastMessage(message, this.Id);
                         break;
                     }
                 }
@@ -62,8 +59,7 @@ namespace Chat
             }
             finally
             {
-                // в случае выхода из цикла закрываем ресурсы
-                server.RemoveConnection(this.Id);
+                _server.RemoveConnection(this.Id);
                 Close();
             }
         }
@@ -71,12 +67,11 @@ namespace Chat
         // чтение входящего сообщения и преобразование в строку
         private string GetMessage()
         {
-            byte[] data = new byte[64];
-            StringBuilder builder = new StringBuilder();
-            int bytes;
+            var data = new byte[64];
+            var builder = new StringBuilder();
             do
             {
-                bytes = Stream.Read(data, 0, data.Length);
+                var bytes = Stream.Read(data, 0, data.Length);
                 builder.Append(Encoding.Unicode.GetString(data, 0, bytes));
             }
             while (Stream.DataAvailable);
@@ -84,13 +79,10 @@ namespace Chat
             return builder.ToString();
         }
 
-        // закрытие подключения
-        protected internal void Close()
+        public void Close()
         {
-            if (Stream != null)
-                Stream.Close();
-            if (client != null)
-                client.Close();
+            Stream?.Close();
+            _client?.Close();
         }
     }
 }
